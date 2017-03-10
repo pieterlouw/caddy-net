@@ -3,15 +3,17 @@ package proxyserver
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddyfile"
+	"github.com/mholt/caddy/caddytls"
 )
 
 const serverType = "proxy"
 
 //tcpecho don't have directives
-var directives = []string{}
+var directives = []string{"echo", "proxy"}
 
 func init() {
 	flag.StringVar(&LocalTCPAddr, serverType+".localtcp", DefaultLocalTCPAddr, "Default local TCP Address")
@@ -62,6 +64,23 @@ func (t *echoContext) MakeServers() ([]caddy.Server, error) {
 	servers = append(servers, s)
 
 	return servers, nil
+}
+
+// GetConfig gets the SiteConfig that corresponds to c.
+// If none exist (should only happen in tests), then a
+// new, empty one will be created.
+func GetConfig(c *caddy.Controller) *SiteConfig {
+	ctx := c.Context().(*httpContext)
+	key := strings.ToLower(c.Key)
+	if cfg, ok := ctx.keysToSiteConfigs[key]; ok {
+		return cfg
+	}
+	// we should only get here during tests because directive
+	// actions typically skip the server blocks where we make
+	// the configs
+	cfg := &SiteConfig{Root: Root, TLS: new(caddytls.Config)}
+	ctx.saveConfig(key, cfg)
+	return cfg
 }
 
 const (

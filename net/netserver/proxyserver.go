@@ -5,17 +5,17 @@ import (
 	"net"
 )
 
-// Server is an echo implementation of the
+// ProxyServer is an implementation of the
 // caddy.Server interface type
-type Server struct {
+type ProxyServer struct {
 	LocalTCPAddr string
 	listener     net.Listener
 	DestTCPAddr  string
 }
 
-// NewServer returns a new proxy server
-func NewServer(l string, d string) (*Server, error) {
-	return &Server{
+// NewProxyServer returns a new proxy server
+func NewProxyServer(l string, d string) (*ProxyServer, error) {
+	return &ProxyServer{
 		LocalTCPAddr: l,
 		DestTCPAddr:  d,
 	}, nil
@@ -24,14 +24,14 @@ func NewServer(l string, d string) (*Server, error) {
 // Listen starts listening by creating a new listener
 // and returning it. It does not start accepting
 // connections.
-func (s *Server) Listen() (net.Listener, error) {
+func (s *ProxyServer) Listen() (net.Listener, error) {
 	return net.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr))
 }
 
 // Serve starts serving using the provided listener.
 // Serve blocks indefinitely, or in other
 // words, until the server is stopped.
-func (s *Server) Serve(ln net.Listener) error {
+func (s *ProxyServer) Serve(ln net.Listener) error {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -52,13 +52,13 @@ func (s *Server) Serve(ln net.Listener) error {
 }
 
 // ListenPacket is a no-op to satisfy caddy.Server interface
-func (s *Server) ListenPacket() (net.PacketConn, error) { return nil, nil }
+func (s *ProxyServer) ListenPacket() (net.PacketConn, error) { return nil, nil }
 
 // ServePacket is a no-op to satisfy caddy.Server interface
-func (s *Server) ServePacket(net.PacketConn) error { return nil }
+func (s *ProxyServer) ServePacket(net.PacketConn) error { return nil }
 
 // OnStartupComplete lists the sites served by this server
 // and any relevant information
-func (s *Server) OnStartupComplete() {
+func (s *ProxyServer) OnStartupComplete() {
 	fmt.Println("OnStartupComplete: Proxying from ", s.LocalTCPAddr, " -> ", s.DestTCPAddr)
 }
