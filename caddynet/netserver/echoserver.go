@@ -1,4 +1,4 @@
-package proxyserver
+package netserver
 
 import (
 	"fmt"
@@ -24,7 +24,7 @@ func NewEchoServer(l string) (*EchoServer, error) {
 // and returning it. It does not start accepting
 // connections.
 func (s *EchoServer) Listen() (net.Listener, error) {
-	return net.Listen("tcp", fmt.Sprintf(":%s", s.LocalTCPAddr))
+	return net.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr))
 }
 
 // Serve starts serving using the provided listener.
@@ -37,13 +37,33 @@ func (s *EchoServer) Serve(ln net.Listener) error {
 			return err
 		}
 
+		fmt.Printf("EchoServer: accepted from %s\n", conn.RemoteAddr())
+
 		go func(c net.Conn) {
 			// Echo all incoming data.
-			io.Copy(c, c)
+			_, err := io.Copy(c, c)
+			if err != nil {
+				fmt.Printf("io.Copy error: %v\n", err)
+			}
+
+			fmt.Println("Closing down connection")
 			// Shut down the connection.
 			c.Close()
 		}(conn)
 	}
+}
+
+// Stop stops s gracefully (or forcefully after timeout) and
+// closes its listener.
+func (s *EchoServer) Stop() error {
+
+	fmt.Println("EchoServer Stop")
+	err := s.listener.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ListenPacket is a no-op to satisfy caddy.Server interface
@@ -55,5 +75,5 @@ func (s *EchoServer) ServePacket(net.PacketConn) error { return nil }
 // OnStartupComplete lists the sites served by this server
 // and any relevant information
 func (s *EchoServer) OnStartupComplete() {
-	fmt.Println("OnStartupComplete:", s.LocalTCPAddr)
+	fmt.Println("EchoServer OnStartupComplete:", s.LocalTCPAddr)
 }

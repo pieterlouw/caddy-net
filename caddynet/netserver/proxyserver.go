@@ -1,4 +1,4 @@
-package proxyserver
+package netserver
 
 import (
 	"fmt"
@@ -45,10 +45,23 @@ func (s *ProxyServer) Serve(ln net.Listener) error {
 			erred:       false,
 			closeSignal: make(chan bool),
 		}
-		fmt.Printf("server: accepted from %s\n", conn.RemoteAddr())
+		fmt.Printf("ProxyServer: accepted from %s\n", conn.RemoteAddr())
 
 		go p.proxy()
 	}
+}
+
+// Stop stops s gracefully (or forcefully after timeout) and
+// closes its listener.
+func (s *ProxyServer) Stop() error {
+
+	fmt.Println("ProxyServer Stop")
+	err := s.listener.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ListenPacket is a no-op to satisfy caddy.Server interface
@@ -60,5 +73,5 @@ func (s *ProxyServer) ServePacket(net.PacketConn) error { return nil }
 // OnStartupComplete lists the sites served by this server
 // and any relevant information
 func (s *ProxyServer) OnStartupComplete() {
-	fmt.Println("OnStartupComplete: Proxying from ", s.LocalTCPAddr, " -> ", s.DestTCPAddr)
+	fmt.Println("ProxyServer OnStartupComplete: Proxying from ", s.LocalTCPAddr, " -> ", s.DestTCPAddr)
 }

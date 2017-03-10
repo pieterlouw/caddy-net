@@ -74,3 +74,10 @@ func (p *proxyConnection) errorFunc(s string, err error) {
 	p.closeSignal <- true
 	p.erred = true
 }
+
+// close sends close signal
+func (p *proxyConnection) close() {
+	fmt.Println("closing")
+	p.closeSignal <- true
+	p.erred = true
+}

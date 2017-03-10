@@ -1,10 +1,29 @@
-# Caddy Proxy #
+# Caddy Net #
 
-TCP/UDP Proxy ServerType for [Caddy Server](https://github.com/mholt/caddy)
+*Note: This server type plugin is currently in working progress.*
 
-The server type is called `proxy`.
+TCP/UDP  server type for [Caddy Server](https://github.com/mholt/caddy)
 
-*For now this server type listens on port 12017 by default and can only proxy to one destination specified in the Caddyfile*   
+The server type is called `net`
+
+## Proposed Caddyfile ## 
+
+```
+localhost:8080 {
+    echo
+}
+
+localhost:12017 {
+    proxy localhost:22017
+}
+
+```
+
+The first server block will listen on port `8080` and echo any traffic back to caller
+
+The second server block will listen on port `12017` and forward traffic to address `localhost:22017`
+
+Rule:A server block can only echo or proxy, not both.
 
 ## References ##
 
