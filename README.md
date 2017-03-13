@@ -35,6 +35,6 @@ The second server block will listen on port `12017` and forward traffic to addre
 
 [Writing a Plugin: Server Type](https://github.com/mholt/caddy/wiki/Writing-a-Plugin:-Server-Type)
 
-[Caddy Forum discussion](https://forum.caddyserver.com/t/server-types-other-than-http/65)
+[Caddy Forum discussion](https://forum.caddyserver.com/t/writing-a-tcp-udp-server-type-for-caddy/1589)
 
 
