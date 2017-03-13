@@ -32,6 +32,9 @@ func (s *ProxyServer) Listen() (net.Listener, error) {
 // Serve blocks indefinitely, or in other
 // words, until the server is stopped.
 func (s *ProxyServer) Serve(ln net.Listener) error {
+
+	s.listener = ln
+
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -51,8 +54,7 @@ func (s *ProxyServer) Serve(ln net.Listener) error {
 	}
 }
 
-// Stop stops s gracefully (or forcefully after timeout) and
-// closes its listener.
+// Stop stops s gracefully and closes its listener.
 func (s *ProxyServer) Stop() error {
 
 	fmt.Println("ProxyServer Stop")
