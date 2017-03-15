@@ -11,8 +11,10 @@ import (
 
 const serverType = "net"
 
-//tcpecho don't have directives
-var directives = []string{"echo", "proxy"}
+//directives for the net server type
+//var directives = []string{"echoConf", "proxyConf"}
+
+var directives = []string{}
 
 func init() {
 	flag.StringVar(&LocalTCPAddr, serverType+".localtcp", DefaultLocalTCPAddr, "Default local TCP Address")
@@ -53,32 +55,19 @@ func (n *netContext) saveConfig(key string, cfg *Config) {
 // executing directives and otherwise prepares the directives to
 // be parsed and executed.
 func (n *netContext) InspectServerBlocks(sourceFile string, serverBlocks []caddyfile.ServerBlock) ([]caddyfile.ServerBlock, error) {
+	//fmt.Printf("[INFO] InspectServerBlocks [%s]\n", sourceFile)
+	currentKey := ""
+	cfg := make(map[string][]string)
 
-	fmt.Printf("[INFO] InspectServerBlocks [%s]\n", sourceFile)
-
-	// For each address in each server block, make a new config
+	// For each key in each server block, make a new config
 	for _, sb := range serverBlocks {
 		for _, key := range sb.Keys {
-			fmt.Printf("[INFO] range serverBlocks key [%s]\n", key)
-			fmt.Printf("[INFO] range serverBlock tokens [%+v]\n", sb.Tokens)
+			//		fmt.Printf("[INFO] range serverBlocks key [%s]\n", key)
+			//		fmt.Printf("[INFO] range serverBlock tokens [%+v]\n", sb.Tokens)
 
 			key = strings.ToLower(key)
 			if _, dup := n.keysToConfigs[key]; dup {
-				return serverBlocks, fmt.Errorf("duplicate address: %s", key)
-			}
-
-			_, isEchoServer := sb.Tokens["echo"]
-			_, isProxyServer := sb.Tokens["proxy"]
-
-			netType := ""
-			if isEchoServer {
-				netType = "echo"
-			} else if isProxyServer {
-				netType = "proxy"
-			}
-
-			if netType == "" {
-				return serverBlocks, fmt.Errorf("invalid server type: %s", key)
+				return serverBlocks, fmt.Errorf("duplicate key: %s", key)
 			}
 
 			tokens := make(map[string][]string)
@@ -89,15 +78,27 @@ func (n *netContext) InspectServerBlocks(sourceFile string, serverBlocks []caddy
 				}
 			}
 
-			// Save the config to our master list, and key it for lookups
-			cfg := &Config{
-				Addr:   key,
-				Type:   netType,
-				Tokens: tokens,
+			switch key {
+			case "echo":
+				fallthrough
+			case "proxy":
+				currentKey = key
+				cfg[currentKey] = []string{}
+			default:
+				cfg[currentKey] = append(cfg[currentKey], key)
 			}
-			n.saveConfig(key, cfg)
 		}
 	}
+
+	for k, v := range cfg {
+		// Save the config to our master list, and key it for lookups
+		cfg := &Config{
+			Type:       k,
+			Parameters: v,
+		}
+		n.saveConfig(k, cfg)
+	}
+
 	return serverBlocks, nil
 }
 
@@ -108,13 +109,13 @@ func (n *netContext) MakeServers() ([]caddy.Server, error) {
 	for _, cfg := range n.configs {
 		switch cfg.Type {
 		case "echo":
-			s, err := NewEchoServer(cfg.Addr)
+			s, err := NewEchoServer(cfg.Parameters[0])
 			if err != nil {
 				return nil, err
 			}
 			servers = append(servers, s)
 		case "proxy":
-			s, err := NewProxyServer(cfg.Addr, "localhost:22017")
+			s, err := NewProxyServer(cfg.Parameters[0], cfg.Parameters[1])
 			if err != nil {
 				return nil, err
 			}
@@ -138,7 +139,7 @@ func GetConfig(c *caddy.Controller) *Config {
 	// we should only get here during tests because directive
 	// actions typically skip the server blocks where we make
 	// the configs
-	cfg := &Config{Addr: key}
+	cfg := &Config{Type: key}
 	ctx.saveConfig(key, cfg)
 	return cfg
 }

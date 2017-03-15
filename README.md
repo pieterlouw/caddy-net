@@ -8,12 +8,12 @@ The server type is called `net`
 
 *Note: This server type plugin is currently in working progress.*
 
-## Roadmap/TODO ## 
+## Roadmap/TODO 
 
  * [ ] Add UDP
  * [ ] Add SSL
 
-## Proposed Caddyfile ## 
+## Proposed Caddyfile 
 
 ```
 echo :8080 {

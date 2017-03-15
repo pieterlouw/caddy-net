@@ -1,8 +1,8 @@
 package netserver
 
-// Config contains information about a netserver type
+// Config contains configuration details about a net server type
 type Config struct {
-	Type   string //echo, proxy
-	Addr   string
-	Tokens map[string][]string
+	Type       string
+	Parameters []string
+	Tokens     map[string][]string
 }

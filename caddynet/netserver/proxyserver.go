@@ -11,6 +11,8 @@ type ProxyServer struct {
 	LocalTCPAddr string
 	listener     net.Listener
 	DestTCPAddr  string
+	udpListener  net.PacketConn
+	sem          chan int
 }
 
 // NewProxyServer returns a new proxy server
@@ -18,6 +20,7 @@ func NewProxyServer(l string, d string) (*ProxyServer, error) {
 	return &ProxyServer{
 		LocalTCPAddr: l,
 		DestTCPAddr:  d,
+		sem:          make(chan int, 100),
 	}, nil
 }
 
@@ -26,6 +29,14 @@ func NewProxyServer(l string, d string) (*ProxyServer, error) {
 // connections.
 func (s *ProxyServer) Listen() (net.Listener, error) {
 	return net.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr))
+}
+
+// ListenPacket starts listening by creating a new Packet listener
+// and returning it. It does not start accepting
+// connections.
+func (s *ProxyServer) ListenPacket() (net.PacketConn, error) {
+	return net.ListenPacket("udp", fmt.Sprintf("%s", s.LocalTCPAddr))
+
 }
 
 // Serve starts serving using the provided listener.
@@ -54,6 +65,30 @@ func (s *ProxyServer) Serve(ln net.Listener) error {
 	}
 }
 
+// ServePacket starts serving using the provided listener.
+// ServePacket blocks indefinitely, or in other
+// words, until the server is stopped.
+func (s *ProxyServer) ServePacket(con net.PacketConn) error {
+
+	s.udpListener = con
+
+	for {
+		s.sem <- 1
+
+		p := &proxyConnection{
+			lconn:       con,
+			laddr:       s.LocalTCPAddr,
+			raddr:       s.DestTCPAddr,
+			erred:       false,
+			closeSignal: make(chan bool),
+		}
+		fmt.Printf("ProxyServer: accepted from %s\n", con.RemoteAddr())
+
+		go p.proxyUDP()
+	}
+
+}
+
 // Stop stops s gracefully and closes its listener.
 func (s *ProxyServer) Stop() error {
 
@@ -65,12 +100,6 @@ func (s *ProxyServer) Stop() error {
 
 	return nil
 }
-
-// ListenPacket is a no-op to satisfy caddy.Server interface
-func (s *ProxyServer) ListenPacket() (net.PacketConn, error) { return nil, nil }
-
-// ServePacket is a no-op to satisfy caddy.Server interface
-func (s *ProxyServer) ServePacket(net.PacketConn) error { return nil }
 
 // OnStartupComplete lists the sites served by this server
 // and any relevant information
