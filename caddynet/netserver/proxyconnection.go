@@ -39,34 +39,6 @@ func (p *proxyConnection) proxy() {
 	fmt.Printf("Done proxying: %s %s\n", p.lconn.LocalAddr(), p.rconn.LocalAddr())
 }
 
-// proxyUDP establishes the connection to the remote server and
-// starts data exchange. It will block until a close signal is received
-// so it's advisable to call as a goroutine
-func (p *proxyConnection) proxyUDP() {
-	defer p.lconn.Close()
-	var err error
-
-	RemoteAddr, err := net.ResolveUDPAddr("udp", p.raddr)
-
-	conn, err := net.DialUDP("udp", nil, RemoteAddr)
-	if err != nil {
-		p.errorFunc("Cannot connect to remote connection: %s", err)
-		return
-	}
-	//defer p.rconn.Close()
-	defer conn.Close()
-
-	//go p.exchangeData(p.rconn, p.lconn)
-	//go p.exchangeData(p.lconn, p.rconn)
-
-	go p.exchangeData(p.rconn, conn)
-	go p.exchangeData(conn, p.rconn)
-
-	//wait for close signal
-	<-p.closeSignal
-	fmt.Printf("Done proxying: %s %s\n", p.lconn.LocalAddr(), conn.LocalAddr())
-}
-
 // exchangeData reads from source connection and forwards
 // data to destination connection
 func (p *proxyConnection) exchangeData(dst, src net.Conn) {

@@ -8,11 +8,12 @@ import (
 // ProxyServer is an implementation of the
 // caddy.Server interface type
 type ProxyServer struct {
-	LocalTCPAddr string
-	listener     net.Listener
-	DestTCPAddr  string
-	udpListener  net.PacketConn
-	sem          chan int
+	LocalTCPAddr    string
+	listener        net.Listener
+	DestTCPAddr     string
+	udpPacketConn   net.PacketConn
+	udpClients      map[string]*proxyUDPConnection
+	udpClientClosed chan string
 }
 
 // NewProxyServer returns a new proxy server
@@ -20,7 +21,8 @@ func NewProxyServer(l string, d string) (*ProxyServer, error) {
 	return &ProxyServer{
 		LocalTCPAddr: l,
 		DestTCPAddr:  d,
-		sem:          make(chan int, 100),
+		//	sem:          make(chan int, 100),
+		udpClients: make(map[string]*proxyUDPConnection),
 	}, nil
 }
 
@@ -70,30 +72,84 @@ func (s *ProxyServer) Serve(ln net.Listener) error {
 // words, until the server is stopped.
 func (s *ProxyServer) ServePacket(con net.PacketConn) error {
 
-	s.udpListener = con
+	s.udpPacketConn = con
+	s.udpClientClosed = make(chan string)
 
+	go s.handleClosedUDPConnections()
+
+	buf := make([]byte, 4096)
 	for {
-		s.sem <- 1
-
-		p := &proxyConnection{
-			lconn:       con,
-			laddr:       s.LocalTCPAddr,
-			raddr:       s.DestTCPAddr,
-			erred:       false,
-			closeSignal: make(chan bool),
+		nr, addr, err := s.udpPacketConn.ReadFrom(buf)
+		if err != nil {
+			s.udpPacketConn.Close()
 		}
-		fmt.Printf("ProxyServer: accepted from %s\n", con.RemoteAddr())
 
-		go p.proxyUDP()
+		fmt.Printf("received: [%d] from [%s:%s]\n:[%s]\n", nr, addr.Network(), addr.String(), string(buf[:nr]))
+
+		conn, found := s.udpClients[addr.String()]
+		if !found {
+			// Get remote server address
+			raddr, err := net.ResolveUDPAddr("udp", s.DestTCPAddr)
+			if err != nil {
+				return err
+			}
+
+			remoteUDPConn, err := net.DialUDP("udp", nil, raddr)
+			if err != nil {
+				return err
+			}
+
+			conn = &proxyUDPConnection{
+				lconn:     s.udpPacketConn,
+				laddr:     addr,
+				rconn:     remoteUDPConn,
+				closeChan: s.udpClientClosed,
+			}
+
+			s.udpClients[addr.String()] = conn
+			fmt.Printf("Created new connection for client %s\n", addr.String())
+
+			// wait for data from remote server
+			go conn.Wait()
+		} else {
+			fmt.Printf("Found connection for client %s\n", addr.String())
+		}
+
+		// proxy data received to remote server
+		_, err = conn.rconn.Write(buf[0:nr])
+		if err != nil {
+			return err
+		}
 	}
 
+}
+
+// handleClosedUDPConnections blocks and waits for udp closed connections and do cleanup
+func (s *ProxyServer) handleClosedUDPConnections() {
+	for {
+		clientAddr := <-s.udpClientClosed
+
+		fmt.Printf("Closing UDP connection: [%s]\n", clientAddr)
+
+		conn, found := s.udpClients[clientAddr]
+		if found {
+			conn.Close()
+			delete(s.udpClients, clientAddr)
+		}
+	}
 }
 
 // Stop stops s gracefully and closes its listener.
 func (s *ProxyServer) Stop() error {
 
-	fmt.Println("ProxyServer Stop")
+	fmt.Println("TCP ProxyServer Stop")
 	err := s.listener.Close()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("UDP ProxyServer Stop")
+	s.udpPacketConn.Close()
 	if err != nil {
 		return err
 	}

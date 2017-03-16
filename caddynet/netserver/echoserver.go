@@ -75,7 +75,7 @@ func (s *EchoServer) ServePacket(con net.PacketConn) error {
 	s.udpListener = con
 
 	for {
-		s.sem <- 1
+		s.sem <- 1 //semaphore
 		go s.echoUDP(con)
 	}
 
