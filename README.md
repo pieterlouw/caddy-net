@@ -9,7 +9,7 @@ The server type is called `net`
 ## Roadmap/TODO 
 
  * [x] Add UDP
- * [ ] Add TSL
+ * [ ] Add TLS
 
 ## Proposed Caddyfile 
 
