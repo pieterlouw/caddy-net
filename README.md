@@ -1,17 +1,15 @@
 # Caddy Net #
 
-
+*Note: This server type plugin is  currently still a work in progress (WIP).*
 
 TCP/UDP  server type for [Caddy Server](https://github.com/mholt/caddy)
 
 The server type is called `net`
 
-*Note: This server type plugin is currently in working progress.*
-
 ## Roadmap/TODO 
 
  * [x] Add UDP
- * [ ] Add SSL
+ * [ ] Add TSL
 
 ## Proposed Caddyfile 
 
