@@ -7,6 +7,7 @@ import (
 
 	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddyfile"
+	"github.com/mholt/caddy/caddytls"
 )
 
 const serverType = "net"
@@ -14,7 +15,7 @@ const serverType = "net"
 //directives for the net server type
 //var directives = []string{"echoConf", "proxyConf"}
 
-var directives = []string{}
+var directives = []string{"tls"}
 
 func init() {
 	flag.StringVar(&LocalTCPAddr, serverType+".localtcp", DefaultLocalTCPAddr, "Default local TCP Address")
@@ -29,6 +30,9 @@ func init() {
 		},
 		NewContext: newContext,
 	})
+
+	caddy.RegisterParsingCallback(serverType, "tls", activateTLS)
+	caddytls.RegisterConfigGetter(serverType, func(c *caddy.Controller) *caddytls.Config { return GetConfig(c).TLS })
 }
 
 func newContext() caddy.Context {
@@ -55,16 +59,12 @@ func (n *netContext) saveConfig(key string, cfg *Config) {
 // executing directives and otherwise prepares the directives to
 // be parsed and executed.
 func (n *netContext) InspectServerBlocks(sourceFile string, serverBlocks []caddyfile.ServerBlock) ([]caddyfile.ServerBlock, error) {
-	//fmt.Printf("[INFO] InspectServerBlocks [%s]\n", sourceFile)
 	currentKey := ""
 	cfg := make(map[string][]string)
 
 	// For each key in each server block, make a new config
 	for _, sb := range serverBlocks {
 		for _, key := range sb.Keys {
-			//		fmt.Printf("[INFO] range serverBlocks key [%s]\n", key)
-			//		fmt.Printf("[INFO] range serverBlock tokens [%+v]\n", sb.Tokens)
-
 			key = strings.ToLower(key)
 			if _, dup := n.keysToConfigs[key]; dup {
 				return serverBlocks, fmt.Errorf("duplicate key: %s", key)
@@ -91,8 +91,13 @@ func (n *netContext) InspectServerBlocks(sourceFile string, serverBlocks []caddy
 	}
 
 	for k, v := range cfg {
+		if len(v) == 0 {
+			return serverBlocks, fmt.Errorf("invalid configuration: %s", k)
+		}
 		// Save the config to our master list, and key it for lookups
 		cfg := &Config{
+			TLS:        &caddytls.Config{},
+			ListenPort: v[0], // first element should always be the port
 			Type:       k,
 			Parameters: v,
 		}
