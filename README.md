@@ -2,7 +2,7 @@
 
 *Note: This server type plugin is  currently still a work in progress (WIP).*
 
-TCP/UDP  server type for [Caddy Server](https://github.com/mholt/caddy)
+TCP/UDP server type for [Caddy Server](https://github.com/mholt/caddy)
 
 The server type is called `net`
 
@@ -10,6 +10,7 @@ The server type is called `net`
 
  * [x] Add UDP
  * [ ] Add TLS
+ * [ ] Add auto - TLS (Let's Encrypt)
 
 ## Proposed Caddyfile 
 
