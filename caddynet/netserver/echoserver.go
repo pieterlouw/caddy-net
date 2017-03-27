@@ -1,9 +1,12 @@
 package netserver
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
+
+	"github.com/mholt/caddy/caddytls"
 )
 
 // EchoServer is an echo implementation of the
@@ -13,13 +16,15 @@ type EchoServer struct {
 	listener     net.Listener
 	udpListener  net.PacketConn
 	sem          chan int
+	config       *Config
 }
 
 // NewEchoServer returns a new echo server
-func NewEchoServer(l string) (*EchoServer, error) {
+func NewEchoServer(l string, c *Config) (*EchoServer, error) {
 	return &EchoServer{
 		LocalTCPAddr: l,
 		sem:          make(chan int, 100),
+		config:       c,
 	}, nil
 }
 
@@ -27,7 +32,41 @@ func NewEchoServer(l string) (*EchoServer, error) {
 // and returning it. It does not start accepting
 // connections.
 func (s *EchoServer) Listen() (net.Listener, error) {
-	return net.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr))
+	//return net.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr))
+
+	fmt.Printf("s.config.TLS: %+v\n\n\n", s.config.TLS)
+
+	tlsConfigs := []*caddytls.Config{s.config.TLS}
+	fmt.Printf("tlsConfigs: %+v\n\n\n", tlsConfigs)
+
+	if s.config.TLS.GetCertificate == nil {
+		fmt.Printf("s.config.TLS invalid\n\n\n")
+	}
+
+	tlsConfig, err := caddytls.MakeTLSConfig(tlsConfigs)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("tlsConfig: %+v\n\n\n", tlsConfig)
+
+	var (
+		l net.Listener
+	)
+
+	if tlsConfig == nil {
+		fmt.Println("Echo  - no TLS")
+		l, err = net.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr))
+	} else {
+		fmt.Println("Echo  - with TLS")
+		l, err = tls.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr), tlsConfig)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	return l, nil
+
 }
 
 // ListenPacket starts listening by creating a new Packet listener

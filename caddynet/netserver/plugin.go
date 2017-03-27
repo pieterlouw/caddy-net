@@ -13,9 +13,9 @@ import (
 const serverType = "net"
 
 //directives for the net server type
-//var directives = []string{"echoConf", "proxyConf"}
-
-var directives = []string{"tls"}
+// The ordering of this list is important, tlshost need to be called before
+// tls to get the relevant hostname
+var directives = []string{"tlshost", "tls"}
 
 func init() {
 	flag.StringVar(&LocalTCPAddr, serverType+".localtcp", DefaultLocalTCPAddr, "Default local TCP Address")
@@ -32,7 +32,9 @@ func init() {
 	})
 
 	caddy.RegisterParsingCallback(serverType, "tls", activateTLS)
-	caddytls.RegisterConfigGetter(serverType, func(c *caddy.Controller) *caddytls.Config { return GetConfig(c).TLS })
+	caddytls.RegisterConfigGetter(serverType, func(c *caddy.Controller) *caddytls.Config {
+		return GetConfig(c).TLS
+	})
 }
 
 func newContext() caddy.Context {
@@ -87,6 +89,7 @@ func (n *netContext) InspectServerBlocks(sourceFile string, serverBlocks []caddy
 			default:
 				cfg[currentKey] = append(cfg[currentKey], key)
 			}
+
 		}
 	}
 
@@ -95,13 +98,14 @@ func (n *netContext) InspectServerBlocks(sourceFile string, serverBlocks []caddy
 			return serverBlocks, fmt.Errorf("invalid configuration: %s", k)
 		}
 		// Save the config to our master list, and key it for lookups
-		cfg := &Config{
+		c := &Config{
 			TLS:        &caddytls.Config{},
 			ListenPort: v[0], // first element should always be the port
 			Type:       k,
 			Parameters: v,
 		}
-		n.saveConfig(k, cfg)
+
+		n.saveConfig(k, c)
 	}
 
 	return serverBlocks, nil
@@ -114,7 +118,7 @@ func (n *netContext) MakeServers() ([]caddy.Server, error) {
 	for _, cfg := range n.configs {
 		switch cfg.Type {
 		case "echo":
-			s, err := NewEchoServer(cfg.Parameters[0])
+			s, err := NewEchoServer(cfg.Parameters[0], cfg)
 			if err != nil {
 				return nil, err
 			}
@@ -138,15 +142,22 @@ func (n *netContext) MakeServers() ([]caddy.Server, error) {
 func GetConfig(c *caddy.Controller) *Config {
 	ctx := c.Context().(*netContext)
 	key := strings.ToLower(c.Key)
-	if cfg, ok := ctx.keysToConfigs[key]; ok {
-		return cfg
+
+	//only check for config if the value is proxy or echo
+	//we need to do this because we specify the ports in the server block
+	//and those values need to be ignored as they are also sent from caddy main process.
+	if key == "echo" || key == "proxy" {
+		if cfg, ok := ctx.keysToConfigs[key]; ok {
+			return cfg
+		}
 	}
-	// we should only get here during tests because directive
-	// actions typically skip the server blocks where we make
-	// the configs
-	cfg := &Config{Type: key}
-	ctx.saveConfig(key, cfg)
-	return cfg
+
+	fmt.Printf("GetConfig not found %s\n", key)
+	// we should only get here if value of key in server block
+	// is not echo or proxy i.e port number :12017
+	// we can't return a nil because caddytls.RegisterConfigGetter will panic
+	// so we return a default (blank) config value
+	return &Config{TLS: new(caddytls.Config)}
 }
 
 const (
