@@ -8,20 +8,20 @@ The server type is called `net`
 
 ## Roadmap/TODO 
 
- * [x] Add UDP
- * [ ] Add TLS
- * [ ] Add auto - TLS (Let's Encrypt)
+ * [X] Add UDP
+ * [X] Add TLS
+ * [X] Add auto - TLS (Let's Encrypt)
 
 ## Proposed Caddyfile 
 
 ```
 echo :22017 {
+    host echo.example.com
 }
 
 proxy :12017 :22017 {
-    # proxy config
+    host proxy.example.com
 }
-
 ```
 
 The first server block will listen on port `22017` and echo any traffic back to caller
@@ -29,6 +29,8 @@ The first server block will listen on port `22017` and echo any traffic back to 
 The second server block will listen on port `12017` and forward traffic to address `:22017`
 
 *Rule: A server block can only echo or proxy, not both.*
+
+This server type leverage the [tls directive](https://caddyserver.com/docs/tls) from the Caddy server and can be added to the server blocks as needed. 
 
 ## References ##
 
