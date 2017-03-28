@@ -1,7 +1,6 @@
 package netserver
 
 import (
-	"flag"
 	"fmt"
 	"strings"
 
@@ -18,13 +17,13 @@ const serverType = "net"
 var directives = []string{"tlshost", "tls"}
 
 func init() {
-	flag.StringVar(&LocalTCPAddr, serverType+".localtcp", DefaultLocalTCPAddr, "Default local TCP Address")
+	//flag.StringVar(&LocalTCPAddr, serverType+".localtcp", DefaultLocalTCPAddr, "Default local TCP Address")
 
 	caddy.RegisterServerType(serverType, caddy.ServerType{
 		Directives: func() []string { return directives },
 		DefaultInput: func() caddy.Input {
 			return caddy.CaddyfileInput{
-				Contents:       []byte(fmt.Sprintf("%s\n", LocalTCPAddr)),
+				//Contents:       []byte(fmt.Sprintf("%s\n", LocalTCPAddr)),
 				ServerTypeName: serverType,
 			}
 		},
@@ -124,7 +123,7 @@ func (n *netContext) MakeServers() ([]caddy.Server, error) {
 			}
 			servers = append(servers, s)
 		case "proxy":
-			s, err := NewProxyServer(cfg.Parameters[0], cfg.Parameters[1])
+			s, err := NewProxyServer(cfg.Parameters[0], cfg.Parameters[1], cfg)
 			if err != nil {
 				return nil, err
 			}
@@ -152,7 +151,6 @@ func GetConfig(c *caddy.Controller) *Config {
 		}
 	}
 
-	fmt.Printf("GetConfig not found %s\n", key)
 	// we should only get here if value of key in server block
 	// is not echo or proxy i.e port number :12017
 	// we can't return a nil because caddytls.RegisterConfigGetter will panic

@@ -1,8 +1,11 @@
 package netserver
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
+
+	"github.com/mholt/caddy/caddytls"
 )
 
 // ProxyServer is an implementation of the
@@ -11,18 +14,19 @@ type ProxyServer struct {
 	LocalTCPAddr    string
 	listener        net.Listener
 	DestTCPAddr     string
+	config          *Config
 	udpPacketConn   net.PacketConn
 	udpClients      map[string]*proxyUDPConnection
 	udpClientClosed chan string
 }
 
 // NewProxyServer returns a new proxy server
-func NewProxyServer(l string, d string) (*ProxyServer, error) {
+func NewProxyServer(l string, d string, c *Config) (*ProxyServer, error) {
 	return &ProxyServer{
 		LocalTCPAddr: l,
 		DestTCPAddr:  d,
-		//	sem:          make(chan int, 100),
-		udpClients: make(map[string]*proxyUDPConnection),
+		config:       c,
+		udpClients:   make(map[string]*proxyUDPConnection),
 	}, nil
 }
 
@@ -30,7 +34,29 @@ func NewProxyServer(l string, d string) (*ProxyServer, error) {
 // and returning it. It does not start accepting
 // connections.
 func (s *ProxyServer) Listen() (net.Listener, error) {
-	return net.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr))
+	tlsConfigs := []*caddytls.Config{s.config.TLS}
+	tlsConfig, err := caddytls.MakeTLSConfig(tlsConfigs)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		inner    net.Listener
+		listener net.Listener
+	)
+
+	inner, err = net.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr))
+	if err != nil {
+		return nil, err
+	}
+
+	if tlsConfig != nil {
+		listener = tls.NewListener(inner, tlsConfig)
+	} else {
+		listener = inner
+	}
+
+	return listener, nil
 }
 
 // ListenPacket starts listening by creating a new Packet listener

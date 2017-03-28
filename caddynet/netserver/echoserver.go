@@ -32,40 +32,29 @@ func NewEchoServer(l string, c *Config) (*EchoServer, error) {
 // and returning it. It does not start accepting
 // connections.
 func (s *EchoServer) Listen() (net.Listener, error) {
-	//return net.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr))
-
-	fmt.Printf("s.config.TLS: %+v\n\n\n", s.config.TLS)
-
 	tlsConfigs := []*caddytls.Config{s.config.TLS}
-	fmt.Printf("tlsConfigs: %+v\n\n\n", tlsConfigs)
-
-	if s.config.TLS.GetCertificate == nil {
-		fmt.Printf("s.config.TLS invalid\n\n\n")
-	}
-
 	tlsConfig, err := caddytls.MakeTLSConfig(tlsConfigs)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("tlsConfig: %+v\n\n\n", tlsConfig)
-
 	var (
-		l net.Listener
+		inner    net.Listener
+		listener net.Listener
 	)
 
-	if tlsConfig == nil {
-		fmt.Println("Echo  - no TLS")
-		l, err = net.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr))
-	} else {
-		fmt.Println("Echo  - with TLS")
-		l, err = tls.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr), tlsConfig)
-	}
-
+	inner, err = net.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr))
 	if err != nil {
 		return nil, err
 	}
-	return l, nil
+
+	if tlsConfig != nil {
+		listener = tls.NewListener(inner, tlsConfig)
+	} else {
+		listener = inner
+	}
+
+	return listener, nil
 
 }
 
@@ -90,8 +79,6 @@ func (s *EchoServer) Serve(ln net.Listener) error {
 			return err
 		}
 
-		fmt.Printf("EchoServer: accepted from %s\n", conn.RemoteAddr())
-
 		go func(c net.Conn) {
 			// Echo all incoming data.
 			_, err := io.Copy(c, c)
@@ -99,7 +86,6 @@ func (s *EchoServer) Serve(ln net.Listener) error {
 				fmt.Printf("io.Copy error: %v\n", err)
 			}
 
-			fmt.Println("Closing down connection")
 			// Shut down the connection.
 			c.Close()
 		}(conn)
