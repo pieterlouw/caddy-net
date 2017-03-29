@@ -95,6 +95,10 @@ func (n *netContext) InspectServerBlocks(sourceFile string, serverBlocks []caddy
 		if len(v) == 0 {
 			return serverBlocks, fmt.Errorf("invalid configuration: %s", k)
 		}
+
+		if k == "proxy" && len(v) < 2 {
+			return serverBlocks, fmt.Errorf("invalid configuration: proxy server block expects a source and destination address")
+		}
 		// Save the config to our master list, and key it for lookups
 		c := &Config{
 			TLS:        &caddytls.Config{},
