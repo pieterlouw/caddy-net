@@ -7,16 +7,16 @@ import (
 )
 
 func init() {
-	caddy.RegisterPlugin("tlshost", caddy.Plugin{
+	caddy.RegisterPlugin("host", caddy.Plugin{
 		ServerType: "net",
-		Action:     setupTLSHost,
+		Action:     setupHost,
 	})
 }
 
-func setupTLSHost(c *caddy.Controller) error {
+func setupHost(c *caddy.Controller) error {
 	config := netserver.GetConfig(c)
 
-	// Ignore call to setupTLSHost if the key is not echo or proxy
+	// Ignore call to setupHost if the key is not echo or proxy
 	if c.Key != "echo" && c.Key != "proxy" {
 		return nil
 	}
@@ -25,7 +25,7 @@ func setupTLSHost(c *caddy.Controller) error {
 		if !c.NextArg() {
 			return c.ArgErr()
 		}
-		config.TLSHost = c.Val()
+		config.Hostname = c.Val()
 
 		if config.TLS == nil {
 			config.TLS = &caddytls.Config{Hostname: c.Val()}
