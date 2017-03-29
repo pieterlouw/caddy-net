@@ -20,11 +20,6 @@ func activateTLS(cctx caddy.Context) error {
 
 	ctx := cctx.(*netContext)
 
-	/*fmt.Print("\nBefore\n")
-	for _, c := range ctx.configs {
-		fmt.Printf("%+v\n", c.TLS)
-	}*/
-
 	// 2. Sets the Managed field to true on all configs that should be fully managed
 	for _, cfg := range ctx.configs {
 		if caddytls.QualifiesForManagedTLS(cfg) {
@@ -49,8 +44,8 @@ func activateTLS(cctx caddy.Context) error {
 			continue
 		}
 		cfg.TLS.Enabled = true
-		if caddytls.HostQualifies(cfg.TLSHost) {
-			_, err := cfg.TLS.CacheManagedCertificate(cfg.TLSHost)
+		if caddytls.HostQualifies(cfg.Hostname) {
+			_, err := cfg.TLS.CacheManagedCertificate(cfg.Hostname)
 			if err != nil {
 				return err
 			}
@@ -70,11 +65,6 @@ func activateTLS(cctx caddy.Context) error {
 	if err != nil {
 		return err
 	}
-
-	/*fmt.Print("\nAfter\n")
-	for _, c := range ctx.configs {
-		fmt.Printf("%+v\n", c.TLS)
-	}*/
 
 	if !caddy.Quiet && operatorPresent {
 		fmt.Println(" done.")
