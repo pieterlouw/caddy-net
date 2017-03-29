@@ -11,10 +11,10 @@ import (
 
 const serverType = "net"
 
-//directives for the net server type
-// The ordering of this list is important, tlshost need to be called before
-// tls to get the relevant hostname
-var directives = []string{"tlshost", "tls"}
+// directives for the net server type
+// The ordering of this list is important, host need to be called before
+// tls to get the relevant hostname needed
+var directives = []string{"host", "tls"}
 
 func init() {
 	//flag.StringVar(&LocalTCPAddr, serverType+".localtcp", DefaultLocalTCPAddr, "Default local TCP Address")
@@ -31,9 +31,7 @@ func init() {
 	})
 
 	caddy.RegisterParsingCallback(serverType, "tls", activateTLS)
-	caddytls.RegisterConfigGetter(serverType, func(c *caddy.Controller) *caddytls.Config {
-		return GetConfig(c).TLS
-	})
+	caddytls.RegisterConfigGetter(serverType, func(c *caddy.Controller) *caddytls.Config { return GetConfig(c).TLS })
 }
 
 func newContext() caddy.Context {
@@ -92,6 +90,7 @@ func (n *netContext) InspectServerBlocks(sourceFile string, serverBlocks []caddy
 		}
 	}
 
+	// build the actual Config from gathered data
 	for k, v := range cfg {
 		if len(v) == 0 {
 			return serverBlocks, fmt.Errorf("invalid configuration: %s", k)

@@ -1,9 +1,6 @@
 package netserver
 
-import (
-	"fmt"
-	"net"
-)
+import "net"
 
 // proxyUDPConnection resembles a UDP proxy connection and pipe data between local and remote.
 type proxyUDPConnection struct {
@@ -20,19 +17,15 @@ func (p *proxyUDPConnection) Wait() {
 		// Read from server
 		n, err := p.rconn.Read(buf)
 		if err != nil {
-			fmt.Printf("Error reading from remote server. client:%s Err:%s\n", p.laddr.String(), err)
 			p.closeChan <- p.laddr.String()
 			return
 		}
 		// Relay data from remote back to client
-
 		_, err = p.lconn.WriteTo(buf[0:n], p.laddr)
 		if err != nil {
-			fmt.Printf("Error writing to client:%s Err:%s\n", p.laddr.String(), err)
 			p.closeChan <- p.laddr.String()
 			return
 		}
-		fmt.Printf("Relayed '%s' from server to %s.\n", string(buf[0:n]), p.laddr.String())
 	}
 }
 

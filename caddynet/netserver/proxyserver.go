@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddytls"
 )
 
@@ -12,8 +13,8 @@ import (
 // caddy.Server interface type
 type ProxyServer struct {
 	LocalTCPAddr    string
-	listener        net.Listener
 	DestTCPAddr     string
+	tcpListener     net.Listener
 	config          *Config
 	udpPacketConn   net.PacketConn
 	udpClients      map[string]*proxyUDPConnection
@@ -34,18 +35,14 @@ func NewProxyServer(l string, d string, c *Config) (*ProxyServer, error) {
 // and returning it. It does not start accepting
 // connections.
 func (s *ProxyServer) Listen() (net.Listener, error) {
-	tlsConfigs := []*caddytls.Config{s.config.TLS}
-	tlsConfig, err := caddytls.MakeTLSConfig(tlsConfigs)
+	var listener net.Listener
+
+	tlsConfig, err := caddytls.MakeTLSConfig([]*caddytls.Config{s.config.TLS})
 	if err != nil {
 		return nil, err
 	}
 
-	var (
-		inner    net.Listener
-		listener net.Listener
-	)
-
-	inner, err = net.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr))
+	inner, err := net.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr))
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +69,7 @@ func (s *ProxyServer) ListenPacket() (net.PacketConn, error) {
 // words, until the server is stopped.
 func (s *ProxyServer) Serve(ln net.Listener) error {
 
-	s.listener = ln
+	s.tcpListener = ln
 
 	for {
 		conn, err := ln.Accept()
@@ -87,7 +84,6 @@ func (s *ProxyServer) Serve(ln net.Listener) error {
 			erred:       false,
 			closeSignal: make(chan bool),
 		}
-		fmt.Printf("ProxyServer: accepted from %s\n", conn.RemoteAddr())
 
 		go p.proxy()
 	}
@@ -110,8 +106,6 @@ func (s *ProxyServer) ServePacket(con net.PacketConn) error {
 			s.udpPacketConn.Close()
 		}
 
-		fmt.Printf("received: [%d] from [%s:%s]\n:[%s]\n", nr, addr.Network(), addr.String(), string(buf[:nr]))
-
 		conn, found := s.udpClients[addr.String()]
 		if !found {
 			// Get remote server address
@@ -133,12 +127,9 @@ func (s *ProxyServer) ServePacket(con net.PacketConn) error {
 			}
 
 			s.udpClients[addr.String()] = conn
-			fmt.Printf("Created new connection for client %s\n", addr.String())
 
 			// wait for data from remote server
 			go conn.Wait()
-		} else {
-			fmt.Printf("Found connection for client %s\n", addr.String())
 		}
 
 		// proxy data received to remote server
@@ -155,8 +146,6 @@ func (s *ProxyServer) handleClosedUDPConnections() {
 	for {
 		clientAddr := <-s.udpClientClosed
 
-		fmt.Printf("Closing UDP connection: [%s]\n", clientAddr)
-
 		conn, found := s.udpClients[clientAddr]
 		if found {
 			conn.Close()
@@ -168,13 +157,11 @@ func (s *ProxyServer) handleClosedUDPConnections() {
 // Stop stops s gracefully and closes its listener.
 func (s *ProxyServer) Stop() error {
 
-	fmt.Println("TCP ProxyServer Stop")
-	err := s.listener.Close()
+	err := s.tcpListener.Close()
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("UDP ProxyServer Stop")
 	s.udpPacketConn.Close()
 	if err != nil {
 		return err
@@ -186,5 +173,7 @@ func (s *ProxyServer) Stop() error {
 // OnStartupComplete lists the sites served by this server
 // and any relevant information
 func (s *ProxyServer) OnStartupComplete() {
-	fmt.Println("ProxyServer OnStartupComplete: Proxying from ", s.LocalTCPAddr, " -> ", s.DestTCPAddr)
+	if !caddy.Quiet {
+		fmt.Println("[INFO] Proxying from ", s.LocalTCPAddr, " -> ", s.DestTCPAddr)
+	}
 }

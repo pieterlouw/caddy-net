@@ -1,7 +1,6 @@
 package netserver
 
 import (
-	"encoding/hex"
 	"fmt"
 	"io"
 	"net"
@@ -52,13 +51,12 @@ func (p *proxyConnection) exchangeData(dst, src net.Conn) {
 
 		if bytesRead > 0 {
 			b := buf[:bytesRead]
-			fmt.Println(hex.Dump(b)) // THIS SHOULD BE CONFIGURABLE
-			bytesWritten, ew := dst.Write(b)
-			if ew != nil {
-				p.errorFunc("Cannot write to remote connection", ew)
+			//fmt.Println(hex.Dump(b)) // THIS SHOULD BE CONFIGURABLE
+			_, err = dst.Write(b)
+			if err != nil {
+				p.errorFunc("Cannot write to remote connection", err)
 				return
 			}
-			fmt.Printf("Bytes written %d\n", bytesWritten)
 		}
 	}
 }
@@ -69,7 +67,7 @@ func (p *proxyConnection) errorFunc(s string, err error) {
 		return
 	}
 	if err != io.EOF {
-		fmt.Printf("%s Err:%s\n", s, err)
+		fmt.Printf("[ERROR] %s Err:%s\n", s, err)
 	}
 	p.closeSignal <- true
 	p.erred = true
@@ -77,7 +75,6 @@ func (p *proxyConnection) errorFunc(s string, err error) {
 
 // close sends close signal
 func (p *proxyConnection) close() {
-	fmt.Println("closing")
 	p.closeSignal <- true
 	p.erred = true
 }

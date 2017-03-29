@@ -7,7 +7,7 @@ type Config struct {
 	Type string
 
 	// The hostname to be used for TLS configurations
-	TLSHost string
+	Hostname string
 
 	// The port the server binds to and listens on
 	ListenPort string
@@ -24,9 +24,9 @@ func (c Config) TLSConfig() *caddytls.Config {
 	return c.TLS
 }
 
-// Host returns c.TLSHost
+// Host returns c.Hostname
 func (c Config) Host() string {
-	return c.TLSHost
+	return c.Hostname
 }
 
 // Port returns c.ListenPort

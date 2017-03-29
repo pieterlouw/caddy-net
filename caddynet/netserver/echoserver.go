@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 
+	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddytls"
 )
 
@@ -13,9 +14,9 @@ import (
 // caddy.Server interface type
 type EchoServer struct {
 	LocalTCPAddr string
-	listener     net.Listener
+	tcpListener  net.Listener
 	udpListener  net.PacketConn
-	sem          chan int
+	udpSemaphore chan int
 	config       *Config
 }
 
@@ -23,7 +24,7 @@ type EchoServer struct {
 func NewEchoServer(l string, c *Config) (*EchoServer, error) {
 	return &EchoServer{
 		LocalTCPAddr: l,
-		sem:          make(chan int, 100),
+		udpSemaphore: make(chan int, 100),
 		config:       c,
 	}, nil
 }
@@ -32,18 +33,14 @@ func NewEchoServer(l string, c *Config) (*EchoServer, error) {
 // and returning it. It does not start accepting
 // connections.
 func (s *EchoServer) Listen() (net.Listener, error) {
-	tlsConfigs := []*caddytls.Config{s.config.TLS}
-	tlsConfig, err := caddytls.MakeTLSConfig(tlsConfigs)
+	var listener net.Listener
+
+	tlsConfig, err := caddytls.MakeTLSConfig([]*caddytls.Config{s.config.TLS})
 	if err != nil {
 		return nil, err
 	}
 
-	var (
-		inner    net.Listener
-		listener net.Listener
-	)
-
-	inner, err = net.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr))
+	inner, err := net.Listen("tcp", fmt.Sprintf("%s", s.LocalTCPAddr))
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +68,7 @@ func (s *EchoServer) ListenPacket() (net.PacketConn, error) {
 // words, until the server is stopped.
 func (s *EchoServer) Serve(ln net.Listener) error {
 
-	s.listener = ln
+	s.tcpListener = ln
 
 	for {
 		conn, err := ln.Accept()
@@ -100,33 +97,30 @@ func (s *EchoServer) ServePacket(con net.PacketConn) error {
 	s.udpListener = con
 
 	for {
-		s.sem <- 1 //semaphore
+		s.udpSemaphore <- 1 //semaphore
 		go s.echoUDP(con)
 	}
 
 }
 
 func (s *EchoServer) echoUDP(con net.PacketConn) {
-	defer func() { <-s.sem }()
+	defer func() { <-s.udpSemaphore }()
 
 	buf := make([]byte, 4096)
 	nr, addr, err := con.ReadFrom(buf)
 	if err != nil {
 		s.udpListener.Close()
 	}
-	nw, err := con.WriteTo(buf[:nr], addr)
+	_, err = con.WriteTo(buf[:nr], addr)
 	if err != nil {
 		s.udpListener.Close()
 	}
-
-	fmt.Printf("received: [%d] sent [%d]\n", nr, nw)
 }
 
 // Stop stops s gracefully and closes its listener.
 func (s *EchoServer) Stop() error {
 
-	fmt.Println("EchoServer Stop")
-	err := s.listener.Close()
+	err := s.tcpListener.Close()
 	if err != nil {
 		return err
 	}
@@ -142,5 +136,7 @@ func (s *EchoServer) Stop() error {
 // OnStartupComplete lists the sites served by this server
 // and any relevant information
 func (s *EchoServer) OnStartupComplete() {
-	fmt.Println("EchoServer OnStartupComplete:", s.LocalTCPAddr)
+	if !caddy.Quiet {
+		fmt.Println("[INFO] Echoing on port ", s.LocalTCPAddr)
+	}
 }
