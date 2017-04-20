@@ -1,4 +1,4 @@
-package tlshost
+package host
 
 import (
 	"github.com/mholt/caddy"
