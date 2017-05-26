@@ -30,6 +30,8 @@ The second server block will listen on port `12017` and forward traffic to addre
 
 *Rule: A server block can only echo or proxy, not both.*
 
+***Note***: *When you start caddy you will need to specify they server type.* `caddy -type=net`
+
 This server type leverage the [tls directive](https://caddyserver.com/docs/tls) from the Caddy server and can be added to the server blocks as needed. 
 
 ## References ##
