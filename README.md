@@ -40,7 +40,7 @@ This server type leverage the [tls directive](https://caddyserver.com/docs/tls) 
 
 *This server type plugin works as intended but is still considered BETA* 
 
-***Note***: *Because the server type is still in early development the syntax for the Caddyfile might change, but will try to havee syntax above backward compatible.*
+***Note***: *Because the server type is still in early development the syntax for the Caddyfile might change, but will try to have syntax above backward compatible.*
 
 ## Use cases ##
 
