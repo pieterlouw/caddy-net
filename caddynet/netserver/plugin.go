@@ -17,13 +17,11 @@ const serverType = "net"
 var directives = []string{"host", "tls"}
 
 func init() {
-	//flag.StringVar(&LocalTCPAddr, serverType+".localtcp", DefaultLocalTCPAddr, "Default local TCP Address")
 
 	caddy.RegisterServerType(serverType, caddy.ServerType{
 		Directives: func() []string { return directives },
 		DefaultInput: func() caddy.Input {
 			return caddy.CaddyfileInput{
-				//Contents:       []byte(fmt.Sprintf("%s\n", LocalTCPAddr)),
 				ServerTypeName: serverType,
 			}
 		},
@@ -172,15 +170,3 @@ func GetConfig(c *caddy.Controller) *Config {
 	// so we return a default (blank) config value
 	return &Config{TLS: new(caddytls.Config)}
 }
-
-const (
-	// DefaultLocalTCPAddr is the default local TCP Address.
-	DefaultLocalTCPAddr = ":12017"
-)
-
-// These "soft defaults" are configurable by
-// command line flags, etc.
-var (
-	// LocalTCPAddr is the local TCP Address.
-	LocalTCPAddr = DefaultLocalTCPAddr
-)
