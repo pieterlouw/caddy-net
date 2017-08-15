@@ -54,57 +54,69 @@ func (n *netContext) saveConfig(key string, cfg *Config) {
 	n.keysToConfigs[key] = cfg
 }
 
+type configTokens map[string][]string
+
 // InspectServerBlocks make sure that everything checks out before
 // executing directives and otherwise prepares the directives to
 // be parsed and executed.
 func (n *netContext) InspectServerBlocks(sourceFile string, serverBlocks []caddyfile.ServerBlock) ([]caddyfile.ServerBlock, error) {
-	currentKey := ""
-	cfg := make(map[string][]string)
+	cfg := make(map[string]configTokens)
+
+	// Example:
+	// proxy :12017 :22017 {
+	//	host localhost
+	//	tls off
+	// }
+	// ServerBlock Keys will be proxy :12017 :22017 and Tokens will be host and tls
 
 	// For each key in each server block, make a new config
 	for _, sb := range serverBlocks {
-		for _, key := range sb.Keys {
-			key = strings.ToLower(key)
-			if _, dup := n.keysToConfigs[key]; dup {
-				return serverBlocks, fmt.Errorf("duplicate key: %s", key)
+		// build unique key from server block keys and join with '~' i.e echo~:12345
+		key := ""
+		for _, k := range sb.Keys {
+			k = strings.ToLower(k)
+			if key == "" {
+				key = k
+			} else {
+				key += fmt.Sprintf("~%s", k)
 			}
-
-			tokens := make(map[string][]string)
-			for k, v := range sb.Tokens {
-				tokens[k] = []string{}
-				for _, token := range v {
-					tokens[k] = append(tokens[k], token.Text)
-				}
-			}
-
-			switch key {
-			case "echo":
-				fallthrough
-			case "proxy":
-				currentKey = key
-				cfg[currentKey] = []string{}
-			default:
-				cfg[currentKey] = append(cfg[currentKey], key)
-			}
-
 		}
+		if _, dup := n.keysToConfigs[key]; dup {
+			return serverBlocks, fmt.Errorf("duplicate key: %s", key)
+		}
+
+		tokens := make(map[string][]string)
+		for k, v := range sb.Tokens {
+			tokens[k] = []string{}
+			for _, token := range v {
+				tokens[k] = append(tokens[k], token.Text)
+			}
+		}
+
+		cfg[key] = tokens
 	}
 
 	// build the actual Config from gathered data
-	for k, v := range cfg {
-		if len(v) == 0 {
+	// key is the server block key joined by ~
+	// value is the tokens (NOTE: tokens are not used at the moment)
+	for k := range cfg {
+		params := strings.Split(k, "~")
+		listenType := params[0]
+		params = params[1:]
+
+		if len(params) == 0 {
 			return serverBlocks, fmt.Errorf("invalid configuration: %s", k)
 		}
 
-		if k == "proxy" && len(v) < 2 {
+		if listenType == "proxy" && len(params) < 2 {
 			return serverBlocks, fmt.Errorf("invalid configuration: proxy server block expects a source and destination address")
 		}
 		// Save the config to our master list, and key it for lookups
 		c := &Config{
 			TLS:        &caddytls.Config{},
-			ListenPort: v[0], // first element should always be the port
-			Type:       k,
-			Parameters: v,
+			Type:       listenType,
+			ListenPort: params[0], // first element should always be the port
+			Parameters: params,
 		}
 
 		n.saveConfig(k, c)
