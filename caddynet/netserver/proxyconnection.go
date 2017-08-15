@@ -51,7 +51,6 @@ func (p *proxyConnection) exchangeData(dst, src net.Conn) {
 
 		if bytesRead > 0 {
 			b := buf[:bytesRead]
-			//fmt.Println(hex.Dump(b)) // THIS SHOULD BE CONFIGURABLE
 			_, err = dst.Write(b)
 			if err != nil {
 				p.errorFunc("Cannot write to remote connection", err)
