@@ -159,12 +159,12 @@ func (n *netContext) MakeServers() ([]caddy.Server, error) {
 // new, empty one will be created.
 func GetConfig(c *caddy.Controller) *Config {
 	ctx := c.Context().(*netContext)
-	key := strings.ToLower(c.Key)
+	key := strings.Join(c.ServerBlockKeys, "~")
 
 	//only check for config if the value is proxy or echo
 	//we need to do this because we specify the ports in the server block
 	//and those values need to be ignored as they are also sent from caddy main process.
-	if key == "echo" || key == "proxy" {
+	if strings.Contains(key, "echo") || strings.Contains(key, "proxy") {
 		if cfg, ok := ctx.keysToConfigs[key]; ok {
 			return cfg
 		}
