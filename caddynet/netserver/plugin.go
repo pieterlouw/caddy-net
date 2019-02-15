@@ -2,6 +2,7 @@ package netserver
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/mholt/caddy"
@@ -113,7 +114,10 @@ func (n *netContext) InspectServerBlocks(sourceFile string, serverBlocks []caddy
 
 		// Make our caddytls.Config, which has a pointer to the
 		// instance's certificate cache
-		caddytlsConfig := caddytls.NewConfig(n.instance)
+		caddytlsConfig, err := caddytls.NewConfig(n.instance)
+		if err != nil {
+			return serverBlocks, fmt.Errorf("creating new TLS configuration: %v", err)
+		}
 
 		// Save the config to our master list, and key it for lookups
 		c := &Config{
@@ -174,7 +178,11 @@ func GetConfig(c *caddy.Controller) *Config {
 	// is not echo or proxy i.e port number :12017
 	// we can't return a nil because caddytls.RegisterConfigGetter will panic
 	// so we return a default (blank) config value
-	caddytlsConfig := caddytls.NewConfig(ctx.instance)
+	caddytlsConfig, err := caddytls.NewConfig(ctx.instance)
+	if err != nil {
+		log.Printf("[ERROR] Making new TLS configuration: %v", err)
+		return new(Config)
+	}
 
 	return &Config{TLS: caddytlsConfig}
 }
