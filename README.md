@@ -1,6 +1,6 @@
 # Caddy Net #
 
-TCP/UDP server type for [Caddy Server](https://github.com/mholt/caddy)
+TCP/UDP server type for [Caddy Server](https://github.com/caddyserver/caddy)
 
 The server type is called `net`
 
@@ -49,7 +49,7 @@ This server type leverage the [tls directive](https://caddyserver.com/docs/tls) 
 
 ## References ##
 
-[Writing a Plugin: Server Type](https://github.com/mholt/caddy/wiki/Writing-a-Plugin:-Server-Type)
+[Writing a Plugin: Server Type](https://github.com/caddyserver/caddy/wiki/Writing-a-Plugin:-Server-Type)
 
 [Caddy Forum discussion](https://caddy.community/t/writing-a-tcp-udp-server-type-for-caddy/1589)
 

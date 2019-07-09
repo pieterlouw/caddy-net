@@ -1,6 +1,6 @@
 package netserver
 
-import "github.com/mholt/caddy/caddytls"
+import "github.com/caddyserver/caddy/caddytls"
 
 // Config contains configuration details about a net server type
 type Config struct {
