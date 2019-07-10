@@ -3,8 +3,8 @@ package netserver
 import (
 	"fmt"
 
-	"github.com/mholt/caddy"
-	"github.com/mholt/caddy/caddytls"
+	"github.com/caddyserver/caddy"
+	"github.com/caddyserver/caddy/caddytls"
 	"github.com/mholt/certmagic"
 )
 
@@ -12,7 +12,7 @@ import (
 func activateTLS(cctx caddy.Context) error {
 	operatorPresent := !caddy.Started()
 
-	// Follow steps stipulated in https://github.com/mholt/caddy/wiki/Writing-a-Plugin:-Server-Type#automatic-tls (indicated below by numbered comments)
+	// Follow steps stipulated in https://github.com/caddyserver/caddy/wiki/Writing-a-Plugin:-Server-Type#automatic-tls (indicated below by numbered comments)
 
 	// 1. Prints a message to stdout, "Activating privacy features..." (if the operator is present; i.e. caddy.Started() == false) because the process can take a few seconds
 	if !caddy.Quiet && operatorPresent {

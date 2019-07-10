@@ -1,8 +1,8 @@
 package host
 
 import (
-	"github.com/mholt/caddy"
-	"github.com/mholt/caddy/caddytls"
+	"github.com/caddyserver/caddy"
+	"github.com/caddyserver/caddy/caddytls"
 	"github.com/pieterlouw/caddy-net/caddynet/netserver"
 )
 

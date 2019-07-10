@@ -6,8 +6,8 @@ import (
 	"io"
 	"net"
 
-	"github.com/mholt/caddy"
-	"github.com/mholt/caddy/caddytls"
+	"github.com/caddyserver/caddy"
+	"github.com/caddyserver/caddy/caddytls"
 )
 
 // EchoServer is an echo implementation of the
