@@ -28,12 +28,14 @@ func activateTLS(cctx caddy.Context) error {
 		}
 	}
 
-	// 3. Calls ObtainCert() for each config (this method only obtains certificates if the config qualifies and has its Managed field set to true).
+	// 3. Calls ObtainCert() for each managed config.
 	// place certificates and keys on disk
-	for _, c := range ctx.configs {
-		err := c.TLS.Manager.ObtainCert(c.TLS.Hostname, operatorPresent)
-		if err != nil {
-			return err
+	for _, cfg := range ctx.configs {
+		if cfg.TLS.Managed {
+			err := cfg.TLS.Manager.ObtainCert(cfg.TLS.Hostname, operatorPresent)
+			if err != nil {
+				return err
+			}
 		}
 
 	}
