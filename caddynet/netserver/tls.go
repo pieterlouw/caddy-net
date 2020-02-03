@@ -74,7 +74,7 @@ func activateTLS(cctx caddy.Context) error {
 		certCache, ok := ctx.instance.Storage[caddytls.CertCacheInstStorageKey].(*certmagic.Cache)
 		ctx.instance.StorageMu.RUnlock()
 		if ok && certCache != nil {
-			if err := certCache.RenewManagedCertificates(operatorPresent); err != nil {
+			if err := certCache.RenewManagedCertificates(); err != nil {
 				return err
 			}
 		}
