@@ -37,7 +37,6 @@ func activateTLS(cctx caddy.Context) error {
 				return err
 			}
 		}
-
 	}
 
 	// 4. Configures the server struct to use the newly-obtained certificates by setting the Enabled field of the TLS config to true
