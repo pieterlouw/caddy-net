@@ -5,7 +5,7 @@ import (
 
 	"github.com/caddyserver/caddy"
 	"github.com/caddyserver/caddy/caddytls"
-	"github.com/caddyserver/certmagic"
+	"github.com/mholt/certmagic"
 )
 
 // activateTLS
